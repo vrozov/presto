@@ -1,0 +1,29 @@
+schemaVersion: 2.0
+
+timeout: 60
+
+machine:
+  java:
+    version: 1.8
+
+pipelines:
+  - branchName: master-apple
+    build:
+      template: freestyle:v2:prb
+      steps:
+        - ./mvnw clean install -DskipTests
+
+  - branchName: master-apple
+    build:
+      template: freestyle:v2:snapshot
+      steps:
+        - PRESTO_VERSION=328
+        - ./mvnw clean install -DskipTests
+        - mkdir -p .dist/presto-server/${PRESTO_VERSION}
+        - mkdir -p .dist/presto-cli/${PRESTO_VERSION}
+        - cp presto-server/target/presto-server-*.tar.gz .dist/presto-server/${PRESTO_VERSION}
+        - cp presto-cli/target/presto-cli-*-executable.jar .dist/presto-cli/${PRESTO_VERSION}
+    publish:
+      archives:
+        targetPath: com/apple/pie/${PROJECT_ID}
+
