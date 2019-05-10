@@ -104,6 +104,20 @@
             <groupId>io.prestosql</groupId>
             <artifactId>presto-hive-hadoop2</artifactId>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.apple.pie.spark.mcqueen</groupId>
+                    <artifactId>connector</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.apple.ihubble.client</groupId>
+                    <artifactId>hubbleagent-shaded</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.apple.cie.rio</groupId>
+                    <artifactId>hubble-reporter</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>

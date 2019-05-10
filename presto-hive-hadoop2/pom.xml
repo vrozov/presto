@@ -34,6 +34,25 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- runtime dependency on Spark McQueen connector -->
+        <dependency>
+            <groupId>com.apple.pie.spark.mcqueen</groupId>
+            <artifactId>connector</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.apple.ihubble.client</groupId>
+            <artifactId>hubbleagent-shaded</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.apple.cie.rio</groupId>
+            <artifactId>hubble-reporter</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        
         <!-- Presto SPI -->
         <dependency>
             <groupId>io.prestosql</groupId>
@@ -95,6 +114,12 @@
             <groupId>io.prestosql</groupId>
             <artifactId>presto-main</artifactId>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.xml.bind</groupId>
+                    <artifactId>jaxb-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -103,6 +128,22 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.basepom.maven</groupId>
+                <artifactId>duplicate-finder-maven-plugin</artifactId>
+                <configuration>
+                    <ignoredResourcePatterns combine.children="append">
+                        <ignoredResourcePattern>mozilla/public-suffix-list\.txt</ignoredResourcePattern>
+                        <ignoredResourcePattern>mime\.types</ignoredResourcePattern>
+                        <ignoredResourcePattern>google/protobuf/.*\.proto</ignoredResourcePattern>
+                    </ignoredResourcePatterns>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
     <profiles>
         <profile>

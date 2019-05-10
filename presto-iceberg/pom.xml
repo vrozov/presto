@@ -14,21 +14,33 @@
 
     <properties>
         <air.main.basedir>${project.parent.basedir}</air.main.basedir>
-        <dep.iceberg.groupId>com.github.apache.incubator-iceberg</dep.iceberg.groupId>
-        <dep.iceberg.version>77a456a</dep.iceberg.version>
+        <dep.iceberg.groupId>org.apache.iceberg</dep.iceberg.groupId>
+        <dep.iceberg.version>0.4.2-apple</dep.iceberg.version>
     </properties>
-
-    <repositories>
-        <repository>
-            <id>jitpack.io</id>
-            <url>https://jitpack.io</url>
-        </repository>
-    </repositories>
 
     <dependencies>
         <dependency>
             <groupId>io.prestosql.hadoop</groupId>
             <artifactId>hadoop-apache</artifactId>
+        </dependency>
+
+        <!-- runtime dependency on Spark McQueen connector -->
+        <dependency>
+            <groupId>com.apple.pie.spark.mcqueen</groupId>
+            <artifactId>connector</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.apple.ihubble.client</groupId>
+            <artifactId>hubbleagent-shaded</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.apple.cie.rio</groupId>
+            <artifactId>hubble-reporter</artifactId>
+            <scope>runtime</scope>
         </dependency>
 
         <dependency>
@@ -218,12 +230,24 @@
             <groupId>io.prestosql</groupId>
             <artifactId>presto-main</artifactId>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.xml.bind</groupId>
+                    <artifactId>jaxb-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
             <groupId>io.prestosql</groupId>
             <artifactId>presto-testing</artifactId>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.xml.bind</groupId>
+                    <artifactId>jaxb-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -270,5 +294,17 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.basepom.maven</groupId>
+                <artifactId>duplicate-finder-maven-plugin</artifactId>
+                <configuration>
+                    <ignoredResourcePatterns combine.children="append">
+                        <ignoredResourcePattern>mozilla/public-suffix-list\.txt</ignoredResourcePattern>
+                        <ignoredResourcePattern>mime\.types</ignoredResourcePattern>
+                    </ignoredResourcePatterns>
+                </configuration>
+            </plugin>
+        </plugins>
     </build>
 </project>

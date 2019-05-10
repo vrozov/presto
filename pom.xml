@@ -1238,6 +1238,55 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+
+            <dependency>
+                <groupId>com.apple.pie.spark.mcqueen</groupId>
+                <artifactId>connector</artifactId>
+                <version>2.1.8</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.apple.ihubble.client</groupId>
+                        <artifactId>hubbleagent</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.apple.cie.rio</groupId>
+                        <artifactId>hubble-reporter</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>com.apple.ihubble.client</groupId>
+                <artifactId>hubbleagent-shaded</artifactId>
+                <version>19.5.2</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.httpcomponents</groupId>
+                        <artifactId>httpcore</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.httpcomponents</groupId>
+                        <artifactId>httpclient</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>com.apple.cie.rio</groupId>
+                <artifactId>hubble-reporter</artifactId>
+                <version>2.12.0</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.apple.ihubble.client</groupId>
+                        <artifactId>hubbleagent</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
