@@ -21,13 +21,20 @@ import org.apache.iceberg.FileFormat;
 import org.intellij.lang.annotations.Language;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.function.BiConsumer;
 
 import static com.google.common.collect.Iterables.getOnlyElement;
+import static com.google.common.io.MoreFiles.deleteRecursively;
+import static com.google.common.io.RecursiveDeleteOption.ALLOW_INSECURE;
 import static io.prestosql.plugin.iceberg.IcebergQueryRunner.createIcebergQueryRunner;
 import static java.lang.String.format;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
 
 public class TestIcebergSmoke
         extends AbstractTestIntegrationSmokeTest
@@ -71,6 +78,26 @@ public class TestIcebergSmoke
     {
         testWithAllFileFormats(this::testCreatePartitionedTable);
         testWithAllFileFormats(this::testCreatePartitionedTableWithNestedTypes);
+    }
+
+    @Test
+    public void testCreateTableWithLocation() throws IOException
+    {
+        String tableName = "test_table_with_location";
+        Path tableLocation = Files.createTempDirectory("icebergTableLocation");
+        try {
+            assertUpdate("CREATE TABLE " + tableName + " (x VARCHAR) " +
+                    "WITH ( location = '" + tableLocation.toAbsolutePath() + "')");
+            // check metadata file is created.
+            File metadataDir = new File(tableLocation.toAbsolutePath() + "/" + tableName + "/metadata");
+            assertTrue(metadataDir.listFiles(pathname ->
+                    pathname.getAbsolutePath().endsWith(".metadata.json")).length > 0);
+            dropTable(getSession(), tableName);
+        }
+        finally {
+            // cleanup custom location
+            deleteRecursively(tableLocation, ALLOW_INSECURE);
+        }
     }
 
     private void testCreatePartitionedTable(Session session, FileFormat fileFormat)

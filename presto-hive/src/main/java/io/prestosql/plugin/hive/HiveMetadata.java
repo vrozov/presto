@@ -205,8 +205,8 @@ import static io.prestosql.plugin.hive.util.HiveUtil.hiveColumnHandles;
 import static io.prestosql.plugin.hive.util.HiveUtil.toPartitionValues;
 import static io.prestosql.plugin.hive.util.HiveUtil.verifyPartitionTypeSupported;
 import static io.prestosql.plugin.hive.util.HiveWriteUtils.checkTableIsWritable;
+import static io.prestosql.plugin.hive.util.HiveWriteUtils.getExternalPath;
 import static io.prestosql.plugin.hive.util.HiveWriteUtils.initializeSerializer;
-import static io.prestosql.plugin.hive.util.HiveWriteUtils.isS3FileSystem;
 import static io.prestosql.plugin.hive.util.HiveWriteUtils.isWritableType;
 import static io.prestosql.plugin.hive.util.Statistics.ReduceOperator.ADD;
 import static io.prestosql.plugin.hive.util.Statistics.createComputedStatisticsToPartitionMap;
@@ -792,7 +792,7 @@ public class HiveMetadata
             }
 
             external = true;
-            targetPath = getExternalPath(new HdfsContext(session, schemaName, tableName), externalLocation);
+            targetPath = getExternalPath(new HdfsContext(session, schemaName, tableName), hdfsEnvironment, externalLocation);
         }
         else {
             external = false;
@@ -948,22 +948,6 @@ public class HiveMetadata
         }
         catch (IOException e) {
             throw new PrestoException(INVALID_TABLE_PROPERTY, "Cannot open Avro schema file: " + url, e);
-        }
-    }
-
-    private Path getExternalPath(HdfsContext context, String location)
-    {
-        try {
-            Path path = new Path(location);
-            if (!isS3FileSystem(context, hdfsEnvironment, path)) {
-                if (!hdfsEnvironment.getFileSystem(context, path).isDirectory(path)) {
-                    throw new PrestoException(INVALID_TABLE_PROPERTY, "External location must be a directory: " + location);
-                }
-            }
-            return path;
-        }
-        catch (IllegalArgumentException | IOException e) {
-            throw new PrestoException(INVALID_TABLE_PROPERTY, "External location is not a valid file system URI: " + location, e);
         }
     }
 

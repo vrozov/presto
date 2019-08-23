@@ -80,6 +80,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static io.prestosql.plugin.hive.HiveSchemaProperties.getLocation;
+import static io.prestosql.plugin.hive.util.HiveWriteUtils.getExternalPath;
 import static io.prestosql.plugin.hive.util.HiveWriteUtils.getTableDefaultLocation;
 import static io.prestosql.plugin.iceberg.DomainConverter.convertTupleDomainTypes;
 import static io.prestosql.plugin.iceberg.ExpressionConverter.toIcebergExpression;
@@ -307,7 +308,8 @@ public class IcebergMetadata
 
         HdfsContext hdfsContext = new HdfsContext(session, schemaName, tableName);
         HiveIdentity identity = new HiveIdentity(session);
-        String targetPath = getTableDefaultLocation(database, hdfsContext, hdfsEnvironment, schemaName, tableName).toString();
+        String tableLocation = IcebergTableProperties.getLocation(tableMetadata.getProperties());
+        String targetPath = getTablePath(schemaName, tableName, tableLocation, database, hdfsContext);
 
         TableOperations operations = new HiveTableOperations(metastore, hdfsEnvironment, hdfsContext, identity, schemaName, tableName, session.getUser(), targetPath);
         if (operations.current() != null) {
@@ -449,6 +451,19 @@ public class IcebergMetadata
         IcebergColumnHandle columnHandle = (IcebergColumnHandle) source;
         org.apache.iceberg.Table icebergTable = getIcebergTable(metastore, hdfsEnvironment, session, icebergTableHandle.getSchemaTableName());
         icebergTable.updateSchema().renameColumn(columnHandle.getName(), target).commit();
+    }
+
+    private String getTablePath(String schemaName, String tableName, String tableLocation, Database database, HdfsContext hdfsContext)
+    {
+        Path targetPath;
+        if (tableLocation != null) {
+            targetPath = getExternalPath(hdfsContext, hdfsEnvironment, tableLocation);
+            targetPath = new Path(targetPath, tableName);
+        }
+        else {
+            targetPath = getTableDefaultLocation(database, hdfsContext, hdfsEnvironment, schemaName, tableName);
+        }
+        return targetPath.toString();
     }
 
     private ConnectorTableMetadata getTableMetadata(ConnectorSession session, SchemaTableName table)

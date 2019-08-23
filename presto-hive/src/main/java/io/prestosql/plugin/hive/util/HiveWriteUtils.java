@@ -122,6 +122,7 @@ import static io.prestosql.plugin.hive.util.HiveUtil.isArrayType;
 import static io.prestosql.plugin.hive.util.HiveUtil.isMapType;
 import static io.prestosql.plugin.hive.util.HiveUtil.isRowType;
 import static io.prestosql.plugin.hive.util.ParquetRecordWriterUtil.createParquetWriter;
+import static io.prestosql.spi.StandardErrorCode.INVALID_TABLE_PROPERTY;
 import static io.prestosql.spi.StandardErrorCode.NOT_SUPPORTED;
 import static io.prestosql.spi.type.Chars.isCharType;
 import static io.prestosql.spi.type.Chars.padSpaces;
@@ -566,6 +567,22 @@ public final class HiveWriteUtils
         }
         catch (IOException e) {
             throw new PrestoException(HIVE_FILESYSTEM_ERROR, "Failed to set permission on directory: " + path, e);
+        }
+    }
+
+    public static Path getExternalPath(HdfsContext context, HdfsEnvironment hdfsEnvironment, String location)
+    {
+        try {
+            Path path = new Path(location);
+            if (!isS3FileSystem(context, hdfsEnvironment, path)) {
+                if (!hdfsEnvironment.getFileSystem(context, path).isDirectory(path)) {
+                    throw new PrestoException(INVALID_TABLE_PROPERTY, "External location must be a directory");
+                }
+            }
+            return path;
+        }
+        catch (IllegalArgumentException | IOException e) {
+            throw new PrestoException(INVALID_TABLE_PROPERTY, "External location is not a valid file system URI", e);
         }
     }
 
