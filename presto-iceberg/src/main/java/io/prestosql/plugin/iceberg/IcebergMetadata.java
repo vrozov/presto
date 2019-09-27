@@ -72,6 +72,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -196,7 +197,7 @@ public class IcebergMetadata
         return schemaName.map(Collections::singletonList)
                 .orElseGet(metastore::getAllDatabases)
                 .stream()
-                .flatMap(schema -> metastore.getTablesWithParameter(schema, TABLE_TYPE_PROP, ICEBERG_TABLE_TYPE_VALUE).stream()
+                .flatMap(schema -> metastore.getTablesWithParameter(schema, TABLE_TYPE_PROP, ICEBERG_TABLE_TYPE_VALUE.toUpperCase(Locale.ENGLISH)).stream()
                         .map(table -> new SchemaTableName(schema, table))
                         .collect(toList())
                         .stream())
