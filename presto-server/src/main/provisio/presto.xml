@@ -87,7 +87,7 @@
     </artifactSet>
 
     <artifactSet to="plugin/kafka">
-        <artifact id="${project.groupId}:presto-kafka:zip:${project.version}">
+        <artifact id="${project.groupId}:presto-apple-kafka:zip:${project.version}">
             <unpack />
         </artifact>
     </artifactSet>

@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.prestosql.plugin.kafka;
+package com.apple.kafka;
 
 import com.google.inject.Injector;
 import com.google.inject.Scopes;
@@ -19,11 +19,16 @@ import com.google.inject.TypeLiteral;
 import io.airlift.bootstrap.Bootstrap;
 import io.airlift.bootstrap.LifeCycleManager;
 import io.airlift.json.JsonModule;
+import io.prestosql.plugin.kafka.KafkaConnector;
+import io.prestosql.plugin.kafka.KafkaConnectorFactory;
+import io.prestosql.plugin.kafka.KafkaMetadata;
+import io.prestosql.plugin.kafka.KafkaRecordSetProvider;
+import io.prestosql.plugin.kafka.KafkaSplitManager;
+import io.prestosql.plugin.kafka.KafkaTableDescriptionSupplier;
+import io.prestosql.plugin.kafka.KafkaTopicDescription;
 import io.prestosql.spi.NodeManager;
 import io.prestosql.spi.connector.Connector;
 import io.prestosql.spi.connector.ConnectorContext;
-import io.prestosql.spi.connector.ConnectorFactory;
-import io.prestosql.spi.connector.ConnectorHandleResolver;
 import io.prestosql.spi.connector.SchemaTableName;
 import io.prestosql.spi.connector.classloader.ClassLoaderSafeConnectorRecordSetProvider;
 import io.prestosql.spi.connector.classloader.ClassLoaderSafeConnectorSplitManager;
@@ -35,26 +40,18 @@ import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
-public class KafkaConnectorFactory
-        implements ConnectorFactory
+public class AppleKafkaConnectorFactory
+        extends KafkaConnectorFactory
 {
-    protected final Optional<Supplier<Map<SchemaTableName, KafkaTopicDescription>>> tableDescriptionSupplier;
-
-    protected KafkaConnectorFactory(Optional<Supplier<Map<SchemaTableName, KafkaTopicDescription>>> tableDescriptionSupplier)
+    AppleKafkaConnectorFactory(Optional<Supplier<Map<SchemaTableName, KafkaTopicDescription>>> tableDescriptionSupplier)
     {
-        this.tableDescriptionSupplier = requireNonNull(tableDescriptionSupplier, "tableDescriptionSupplier is null");
+        super(tableDescriptionSupplier);
     }
 
     @Override
     public String getName()
     {
-        return "kafka";
-    }
-
-    @Override
-    public ConnectorHandleResolver getHandleResolver()
-    {
-        return new KafkaHandleResolver();
+        return "applekafka";
     }
 
     @Override
@@ -65,7 +62,7 @@ public class KafkaConnectorFactory
 
         Bootstrap app = new Bootstrap(
                 new JsonModule(),
-                new KafkaConnectorModule(),
+                new AppleKafkaConnectorModule(),
                 binder -> {
                     binder.bind(TypeManager.class).toInstance(context.getTypeManager());
                     binder.bind(NodeManager.class).toInstance(context.getNodeManager());
@@ -84,7 +81,7 @@ public class KafkaConnectorFactory
                 .setRequiredConfigurationProperties(config)
                 .initialize();
 
-        ClassLoader classLoader = KafkaConnectorFactory.class.getClassLoader();
+        ClassLoader classLoader = AppleKafkaConnectorFactory.class.getClassLoader();
         return new KafkaConnector(
                 injector.getInstance(LifeCycleManager.class),
                 injector.getInstance(KafkaMetadata.class),

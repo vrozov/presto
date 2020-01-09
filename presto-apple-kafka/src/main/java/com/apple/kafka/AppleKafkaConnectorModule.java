@@ -11,27 +11,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.prestosql.plugin.kafka;
+package com.apple.kafka;
 
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.deser.std.FromStringDeserializer;
 import com.google.inject.Binder;
-import com.google.inject.Module;
 import com.google.inject.Scopes;
 import io.prestosql.decoder.DecoderModule;
+import io.prestosql.plugin.kafka.KafkaConfig;
+import io.prestosql.plugin.kafka.KafkaConnectorModule;
+import io.prestosql.plugin.kafka.KafkaConsumerFactory;
+import io.prestosql.plugin.kafka.KafkaMetadata;
+import io.prestosql.plugin.kafka.KafkaRecordSetProvider;
+import io.prestosql.plugin.kafka.KafkaSplitManager;
+import io.prestosql.plugin.kafka.KafkaTopicDescription;
 import io.prestosql.spi.type.Type;
-import io.prestosql.spi.type.TypeId;
-import io.prestosql.spi.type.TypeManager;
-
-import javax.inject.Inject;
 
 import static io.airlift.configuration.ConfigBinder.configBinder;
 import static io.airlift.json.JsonBinder.jsonBinder;
 import static io.airlift.json.JsonCodecBinder.jsonCodecBinder;
-import static java.util.Objects.requireNonNull;
 
-public class KafkaConnectorModule
-        implements Module
+public class AppleKafkaConnectorModule
+        extends KafkaConnectorModule
 {
     @Override
     public void configure(Binder binder)
@@ -40,34 +39,14 @@ public class KafkaConnectorModule
         binder.bind(KafkaSplitManager.class).in(Scopes.SINGLETON);
         binder.bind(KafkaRecordSetProvider.class).in(Scopes.SINGLETON);
 
-        binder.bind(KafkaConsumerFactory.class).in(Scopes.SINGLETON);
+        binder.bind(KafkaConsumerFactory.class).to(AppleKafkaConsumerFactory.class).in(Scopes.SINGLETON);
 
-        configBinder(binder).bindConfig(KafkaConfig.class);
+        configBinder(binder).bindConfig(AppleKafkaConfig.class);
+        binder.bind(KafkaConfig.class).to(AppleKafkaConfig.class);
 
         jsonBinder(binder).addDeserializerBinding(Type.class).to(TypeDeserializer.class);
         jsonCodecBinder(binder).bindJsonCodec(KafkaTopicDescription.class);
 
         binder.install(new DecoderModule());
-    }
-
-    protected static final class TypeDeserializer
-            extends FromStringDeserializer<Type>
-    {
-        private static final long serialVersionUID = 1L;
-
-        private final TypeManager typeManager;
-
-        @Inject
-        public TypeDeserializer(TypeManager typeManager)
-        {
-            super(Type.class);
-            this.typeManager = requireNonNull(typeManager, "typeManager is null");
-        }
-
-        @Override
-        protected Type _deserialize(String value, DeserializationContext context)
-        {
-            return typeManager.getType(TypeId.of(value));
-        }
     }
 }

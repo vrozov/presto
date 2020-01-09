@@ -28,7 +28,7 @@ import static java.util.Objects.requireNonNull;
 public class KafkaPlugin
         implements Plugin
 {
-    private Optional<Supplier<Map<SchemaTableName, KafkaTopicDescription>>> tableDescriptionSupplier = Optional.empty();
+    protected Optional<Supplier<Map<SchemaTableName, KafkaTopicDescription>>> tableDescriptionSupplier = Optional.empty();
 
     @VisibleForTesting
     public synchronized void setTableDescriptionSupplier(Supplier<Map<SchemaTableName, KafkaTopicDescription>> tableDescriptionSupplier)
