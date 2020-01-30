@@ -45,14 +45,14 @@ public class HdfsFileIo
     public InputFile newInputFile(String path)
     {
         Configuration configuration = environment.getConfiguration(context, new Path(path));
-        return HadoopInputFile.fromLocation(path, configuration);
+        return environment.doAs(context.getIdentity().getUser(), () -> HadoopInputFile.fromLocation(path, configuration));
     }
 
     @Override
     public OutputFile newOutputFile(String path)
     {
         Configuration configuration = environment.getConfiguration(context, new Path(path));
-        return HadoopOutputFile.fromPath(new Path(path), configuration);
+        return environment.doAs(context.getIdentity().getUser(), () -> HadoopOutputFile.fromPath(new Path(path), configuration));
     }
 
     @Override
