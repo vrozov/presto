@@ -298,8 +298,7 @@ public class HiveTableOperations
                 .retry(20)
                 .exponentialBackoff(100, 5000, 600000, 4.0)
                 .suppressFailureWhenFinished()
-                .run(metadataLocation -> newMetadata.set(
-                        TableMetadataParser.read(this, io().newInputFile(metadataLocation))));
+                .run(metadataLocation -> newMetadata.set(TableMetadataParser.read(io(), metadataLocation)));
 
         String newUUID = newMetadata.get().uuid();
         if (currentMetadata != null) {

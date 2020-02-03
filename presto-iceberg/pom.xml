@@ -15,7 +15,7 @@
     <properties>
         <air.main.basedir>${project.parent.basedir}</air.main.basedir>
         <dep.iceberg.groupId>org.apache.iceberg</dep.iceberg.groupId>
-        <dep.iceberg.version>0.4.2-apple</dep.iceberg.version>
+        <dep.iceberg.version>0.4.4-apple-20200206.053603-2</dep.iceberg.version>
     </properties>
 
     <dependencies>

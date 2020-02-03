@@ -317,7 +317,7 @@ public class IcebergMetadata
             throw new TableAlreadyExistsException(schemaTableName);
         }
 
-        TableMetadata metadata = newTableMetadata(operations, schema, partitionSpec, targetPath);
+        TableMetadata metadata = newTableMetadata(schema, partitionSpec, targetPath);
 
         transaction = createTableTransaction(operations, metadata);
 
