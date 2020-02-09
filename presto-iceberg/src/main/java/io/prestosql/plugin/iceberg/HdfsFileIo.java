@@ -16,7 +16,6 @@ package io.prestosql.plugin.iceberg;
 import io.prestosql.plugin.hive.HdfsEnvironment;
 import io.prestosql.plugin.hive.HdfsEnvironment.HdfsContext;
 import io.prestosql.spi.PrestoException;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.iceberg.hadoop.HadoopInputFile;
 import org.apache.iceberg.hadoop.HadoopOutputFile;
@@ -42,17 +41,27 @@ public class HdfsFileIo
     }
 
     @Override
-    public InputFile newInputFile(String path)
+    public InputFile newInputFile(String pathString)
     {
-        Configuration configuration = environment.getConfiguration(context, new Path(path));
-        return environment.doAs(context.getIdentity().getUser(), () -> HadoopInputFile.fromLocation(path, configuration));
+        Path path = new Path(pathString);
+        try {
+            return HadoopInputFile.fromPath(path, environment.getFileSystem(context, path));
+        }
+        catch (IOException e) {
+            throw new PrestoException(HIVE_FILESYSTEM_ERROR, "Failed to create input file: " + path, e);
+        }
     }
 
     @Override
-    public OutputFile newOutputFile(String path)
+    public OutputFile newOutputFile(String pathString)
     {
-        Configuration configuration = environment.getConfiguration(context, new Path(path));
-        return environment.doAs(context.getIdentity().getUser(), () -> HadoopOutputFile.fromPath(new Path(path), configuration));
+        Path path = new Path(pathString);
+        try {
+            return HadoopOutputFile.fromPath(path, environment.getFileSystem(context, path));
+        }
+        catch (IOException e) {
+            throw new PrestoException(HIVE_FILESYSTEM_ERROR, "Failed to create output file: " + path, e);
+        }
     }
 
     @Override

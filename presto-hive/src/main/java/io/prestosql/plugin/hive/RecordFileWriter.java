@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.Callable;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.collect.ImmutableList.toImmutableList;
@@ -62,6 +63,7 @@ public class RecordFileWriter
     private final int fieldCount;
     private final Serializer serializer;
     private final RecordWriter recordWriter;
+    private final Callable<Void> rollbackAction;
     private final SettableStructObjectInspector tableInspector;
     private final List<StructField> structFields;
     private final Object row;
@@ -77,11 +79,13 @@ public class RecordFileWriter
             Properties schema,
             DataSize estimatedWriterSystemMemoryUsage,
             JobConf conf,
+            Callable<Void> rollbackAction,
             TypeManager typeManager,
             ConnectorSession session)
     {
         this.path = requireNonNull(path, "path is null");
         this.conf = requireNonNull(conf, "conf is null");
+        this.rollbackAction = requireNonNull(rollbackAction, "rollbackAction is null");
 
         // existing tables may have columns in a different order
         List<String> fileColumnNames = getColumnNames(schema);
@@ -175,6 +179,12 @@ public class RecordFileWriter
             committed = true;
         }
         catch (IOException e) {
+            try {
+                rollbackAction.call();
+            }
+            catch (Exception suppressed) {
+                e.addSuppressed(suppressed);
+            }
             throw new PrestoException(HIVE_WRITER_CLOSE_ERROR, "Error committing write to Hive", e);
         }
     }
@@ -187,11 +197,10 @@ public class RecordFileWriter
                 recordWriter.close(true);
             }
             finally {
-                // perform explicit deletion here as implementations of RecordWriter.close() often ignore the abort flag.
-                path.getFileSystem(conf).delete(path, false);
+                rollbackAction.call();
             }
         }
-        catch (IOException e) {
+        catch (Exception e) {
             throw new PrestoException(HIVE_WRITER_CLOSE_ERROR, "Error rolling back write to Hive", e);
         }
     }

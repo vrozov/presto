@@ -370,6 +370,7 @@ public enum FileFormat
                     createSchema(format, columnNames, columnTypes),
                     format.getEstimatedWriterSystemMemoryUsage(),
                     config,
+                    () -> null,
                     TYPE_MANAGER,
                     session);
         }

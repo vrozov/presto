@@ -20,8 +20,13 @@ import io.prestosql.plugin.hive.authentication.HdfsAuthentication;
 import io.prestosql.spi.connector.ConnectorSession;
 import io.prestosql.spi.security.ConnectorIdentity;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FilterFileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.util.Progressable;
 
 import javax.inject.Inject;
 
@@ -41,6 +46,32 @@ public class HdfsEnvironment
     private final HdfsConfiguration hdfsConfiguration;
     private final HdfsAuthentication hdfsAuthentication;
     private final boolean verifyChecksum;
+
+    private class DoAsUserFileSystem
+            extends FilterFileSystem
+    {
+        private final String user;
+
+        public DoAsUserFileSystem(String user, Path path, Configuration configuration)
+                    throws IOException
+        {
+            super(hdfsAuthentication.doAs(user, () -> path.getFileSystem(configuration)));
+            this.user = user;
+            setVerifyChecksum(verifyChecksum);
+        }
+
+        @Override
+        public FSDataInputStream open(Path f, int bufferSize) throws IOException
+        {
+            return hdfsAuthentication.doAs(user, () -> super.open(f, bufferSize));
+        }
+
+        @Override
+        public FSDataOutputStream create(Path f, FsPermission permission, boolean overwrite, int bufferSize, short replication, long blockSize, Progressable progress) throws IOException
+        {
+            return hdfsAuthentication.doAs(user, () -> super.create(f, permission, overwrite, bufferSize, replication, blockSize, progress));
+        }
+    }
 
     @Inject
     public HdfsEnvironment(
@@ -67,11 +98,7 @@ public class HdfsEnvironment
     public FileSystem getFileSystem(String user, Path path, Configuration configuration)
             throws IOException
     {
-        return hdfsAuthentication.doAs(user, () -> {
-            FileSystem fileSystem = path.getFileSystem(configuration);
-            fileSystem.setVerifyChecksum(verifyChecksum);
-            return fileSystem;
-        });
+        return new DoAsUserFileSystem(user, path, configuration);
     }
 
     public <R, E extends Exception> R doAs(String user, GenericExceptionAction<R, E> action)

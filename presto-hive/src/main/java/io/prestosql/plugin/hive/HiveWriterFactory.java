@@ -454,6 +454,14 @@ public class HiveWriterFactory
             }
         }
 
+        FileSystem fileSystem;
+        try {
+            fileSystem = hdfsEnvironment.getFileSystem(session.getUser(), path, conf);
+        }
+        catch (IOException e) {
+            throw new PrestoException(HIVE_WRITER_OPEN_ERROR, e);
+        }
+
         if (hiveFileWriter == null) {
             hiveFileWriter = new RecordFileWriter(
                     path,
@@ -464,6 +472,12 @@ public class HiveWriterFactory
                     schema,
                     partitionStorageFormat.getEstimatedWriterSystemMemoryUsage(),
                     conf,
+                    // perform explicit deletion here as implementations of RecordWriter.close() often ignore the abort flag.
+                    () ->
+                    {
+                        fileSystem.delete(path, false);
+                        return null;
+                    },
                     typeManager,
                     session);
         }
@@ -473,7 +487,7 @@ public class HiveWriterFactory
         Consumer<HiveWriter> onCommit = hiveWriter -> {
             Optional<Long> size;
             try {
-                size = Optional.of(hdfsEnvironment.getFileSystem(session.getUser(), path, conf).getFileStatus(path).getLen());
+                size = Optional.of(fileSystem.getFileStatus(path).getLen());
             }
             catch (IOException | RuntimeException e) {
                 // Do not fail the query if file system is not available
@@ -498,14 +512,6 @@ public class HiveWriterFactory
         };
 
         if (!sortedBy.isEmpty()) {
-            FileSystem fileSystem;
-            try {
-                fileSystem = hdfsEnvironment.getFileSystem(session.getUser(), path, conf);
-            }
-            catch (IOException e) {
-                throw new PrestoException(HIVE_WRITER_OPEN_ERROR, e);
-            }
-
             List<Type> types = dataColumns.stream()
                     .map(column -> column.getHiveType().getType(typeManager))
                     .collect(toImmutableList());

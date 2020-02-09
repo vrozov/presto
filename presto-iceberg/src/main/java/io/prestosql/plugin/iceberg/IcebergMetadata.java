@@ -51,7 +51,7 @@ import io.prestosql.spi.statistics.ComputedStatistics;
 import io.prestosql.spi.type.DecimalType;
 import io.prestosql.spi.type.TimestampType;
 import io.prestosql.spi.type.TypeManager;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.iceberg.AppendFiles;
 import org.apache.iceberg.DataFiles;
@@ -80,6 +80,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
+import static io.prestosql.plugin.hive.HiveErrorCode.HIVE_FILESYSTEM_ERROR;
 import static io.prestosql.plugin.hive.HiveSchemaProperties.getLocation;
 import static io.prestosql.plugin.hive.util.HiveWriteUtils.getExternalPath;
 import static io.prestosql.plugin.hive.util.HiveWriteUtils.getTableDefaultLocation;
@@ -383,10 +384,16 @@ public class IcebergMetadata
         AppendFiles appendFiles = transaction.newFastAppend();
         for (CommitTaskData task : commitTasks) {
             HdfsContext context = new HdfsContext(session, table.getSchemaName(), table.getTableName());
-            Configuration configuration = hdfsEnvironment.getConfiguration(context, new Path(task.getPath()));
+            FileSystem fileSystem;
+            try {
+                fileSystem = hdfsEnvironment.getFileSystem(context, new Path(task.getPath()));
+            }
+            catch (IOException e) {
+                throw new PrestoException(HIVE_FILESYSTEM_ERROR, "Failed to create file system for task " + task, e);
+            }
 
             DataFiles.Builder builder = DataFiles.builder(icebergTable.spec())
-                    .withInputFile(HadoopInputFile.fromLocation(task.getPath(), configuration))
+                    .withInputFile(HadoopInputFile.fromLocation(task.getPath(), fileSystem))
                     .withFormat(table.getFileFormat())
                     .withMetrics(task.getMetrics().metrics());
 

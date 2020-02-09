@@ -69,6 +69,12 @@ public final class MetadataReader
 
     private MetadataReader() {}
 
+    public static ParquetMetadata readFooter(FileSystem fileSystem, Path file)
+            throws IOException
+    {
+        return readFooter(fileSystem, file, fileSystem.getFileStatus(file).getLen());
+    }
+
     public static ParquetMetadata readFooter(FileSystem fileSystem, Path file, long fileSize)
             throws IOException
     {

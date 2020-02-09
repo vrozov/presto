@@ -16,6 +16,7 @@ package io.prestosql.plugin.iceberg;
 import com.google.common.collect.ImmutableList;
 import io.airlift.json.JsonCodec;
 import io.airlift.slice.Slice;
+import io.prestosql.parquet.reader.MetadataReader;
 import io.prestosql.plugin.hive.HdfsEnvironment;
 import io.prestosql.plugin.hive.HdfsEnvironment.HdfsContext;
 import io.prestosql.plugin.hive.HiveFileWriter;
@@ -44,6 +45,7 @@ import io.prestosql.spi.type.Type;
 import io.prestosql.spi.type.TypeManager;
 import io.prestosql.spi.type.VarbinaryType;
 import io.prestosql.spi.type.VarcharType;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.ql.io.IOConstants;
 import org.apache.hadoop.mapred.JobConf;
@@ -53,10 +55,11 @@ import org.apache.iceberg.MetricsConfig;
 import org.apache.iceberg.PartitionField;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.Schema;
-import org.apache.iceberg.hadoop.HadoopInputFile;
 import org.apache.iceberg.parquet.ParquetUtil;
 import org.apache.iceberg.transforms.Transform;
+import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -71,6 +74,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static io.airlift.slice.Slices.wrappedBuffer;
+import static io.prestosql.plugin.hive.HiveErrorCode.HIVE_FILESYSTEM_ERROR;
 import static io.prestosql.plugin.hive.metastore.StorageFormat.fromHiveStorageFormat;
 import static io.prestosql.plugin.hive.util.ConfigurationUtils.toJobConf;
 import static io.prestosql.plugin.hive.util.ParquetRecordWriterUtil.setParquetSchema;
@@ -348,6 +352,13 @@ public class IcebergPageSink
 
         setParquetSchema(jobConf, convert(outputSchema, "table"));
 
+        FileSystem fileSystem;
+        try {
+            fileSystem = hdfsEnvironment.getFileSystem(session.getUser(), outputPath, jobConf);
+        }
+        catch (IOException e) {
+            throw new PrestoException(HIVE_FILESYSTEM_ERROR, "Error creating Parquet writer " + outputPath, e);
+        }
         return new RecordFileWriter(
                 outputPath,
                 inputColumns.stream()
@@ -357,6 +368,10 @@ public class IcebergPageSink
                 properties,
                 HiveStorageFormat.PARQUET.getEstimatedWriterSystemMemoryUsage(),
                 jobConf,
+                () -> {
+                    fileSystem.delete(outputPath, false);
+                    return null;
+                },
                 typeManager,
                 session);
     }
@@ -366,7 +381,15 @@ public class IcebergPageSink
     {
         switch (fileFormat) {
             case PARQUET:
-                return ParquetUtil.fileMetrics(HadoopInputFile.fromPath(path, jobConf), MetricsConfig.getDefault());
+                ParquetMetadata metadata;
+                try {
+                    FileSystem fileSystem = hdfsEnvironment.getFileSystem(session.getUser(), path, jobConf);
+                    metadata = MetadataReader.readFooter(fileSystem, path);
+                }
+                catch (IOException e) {
+                    throw new PrestoException(HIVE_FILESYSTEM_ERROR, "Failed to read parquet file metadata : " + path, e);
+                }
+                return ParquetUtil.footerMetrics(metadata, MetricsConfig.getDefault());
         }
         throw new PrestoException(NOT_SUPPORTED, "File format not supported for Iceberg: " + fileFormat);
     }
